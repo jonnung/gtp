@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -23,11 +25,32 @@ func help() string {
 
 func main() {
 	var otpList []otp
-	// todo: Check `.gtplist` file in $HOME directory
-	// todo: Parse JSON data from $HOME/.gtplist
-	otpListString := []byte(`[{"Issuer": "Sample", "AccountName": "jonnung", "Secret": "VOLFSSWKAUJRINVWNJNV57QZL74Y5627"}]`)
-	if err := json.Unmarshal(otpListString, &otpList); err != nil {
-		panic(err)
+	var file *os.File
+
+	userHomeDir, _ := os.UserHomeDir()
+	configFile := userHomeDir + "/.gtplist"
+
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		// Check exists file for practice purpose
+		f, _ := os.Create(configFile)
+		file = f
+	} else {
+		f, _ := os.OpenFile(configFile, os.O_RDWR, os.FileMode(0644))
+		file = f
+	}
+
+	defer file.Close()
+	// gtpList, err := ioutil.ReadFile(configFile)
+	gtpList, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic("Error reading configuration file")
+	}
+
+	if len(gtpList) > 0 {
+		// otpListString := []byte(`[{"Issuer": "Sample", "AccountName": "jonnung", "Secret": "VOLFSSWKAUJRINVWNJNV57QZL74Y5627"}]`)
+		if err := json.Unmarshal([]byte(gtpList), &otpList); err != nil {
+			panic(err)
+		}
 	}
 
 	args := os.Args
@@ -45,8 +68,25 @@ func main() {
 		}
 		fmt.Println(strings.Join(listResult, "\n"))
 	case "add":
-		// todo: Add new otp information by Stdin
-		fmt.Println("add")
+		newOtp := otp{}
+		scanner := bufio.NewScanner(os.Stdin)
+		fmt.Print("Step 1/3) Issuer: ")
+		scanner.Scan()
+		newOtp.Issuer = scanner.Text()
+
+		fmt.Print("Step 2/3) Account Name: ")
+		scanner.Scan()
+		newOtp.AccountName = scanner.Text()
+
+		fmt.Print("Step 3/3) Secret: ")
+		scanner.Scan()
+		newOtp.Secret = scanner.Text()
+
+		otpList = append(otpList, newOtp)
+
+		jsonConfig, _ := json.Marshal(otpList)
+		file.WriteAt(jsonConfig, 0)
+
 	default:
 		if otpSeq, err := strconv.Atoi(command); err != nil {
 			fmt.Println(help())
