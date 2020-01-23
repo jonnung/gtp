@@ -19,13 +19,39 @@ type otp struct {
 	Secret      string
 }
 
+// Show usage text when incoming unknown command.
 func helpText() string {
 	return "usage: gtp [{number}|list|add|remove|clear]\n\n" +
-		"\t{number}\t등록된 OTP의 Passcode를 출력\n" +
-		"\tlist\t등록된 OTP 전체 목록\n" +
-		"\tadd\t신규 OTP Secret 추가\n" +
-		"\tremove\t선택된 OTP 삭제\n" +
-		"\tclear\t전체 OTP 삭제\n"
+		"  {number}  Show time based one-time password by specified secret\n" +
+		"  list      All registered OTP secrets\n" +
+		"  add       Add new OTP secret\n" +
+		"  remove    Remove the specified secret\n" +
+		"  clear     Clear all secrets\n"
+}
+
+func errorOutOfRangeText(index int) string {
+	return fmt.Sprintf("ERRORRRRR: Selected number %d is out of range OTP list\n", index)
+}
+
+// Create linked text with OTP list.
+func getTotalOtpsInfo(otpList []otp) []string {
+	listResult := make([]string, len(otpList))
+	for seq, otp := range otpList {
+		listResult[seq] = fmt.Sprintf("{%d} %s:%s:<secret>", seq+1, otp.Issuer, otp.AccountName)
+	}
+	return listResult
+}
+
+// Write gtp configuration file (overwrite).
+func rewriteConfFile(file *os.File, otpList []otp) {
+	var jsonConfig []byte
+	if len(otpList) > 0 {
+		jsonConfig, _ = json.Marshal(otpList)
+	} else {
+		jsonConfig = []byte("")
+	}
+
+	ioutil.WriteFile(file.Name(), jsonConfig, os.FileMode(0644))
 }
 
 func main() {
@@ -65,13 +91,15 @@ func main() {
 	}
 	command := args[1]
 
+	if len(otpList) == 0 && command != "add" {
+		fmt.Println("¯\\_(ツ)_/¯ Nothing has been registered")
+		return
+	}
+
 	switch command {
 	case "list":
-		listResult := make([]string, len(otpList))
-		for seq, otp := range otpList {
-			listResult[seq] = fmt.Sprintf("{%d} %s:%s:<secret>", seq+1, otp.Issuer, otp.AccountName)
-		}
-		fmt.Println(strings.Join(listResult, "\n"))
+		fmt.Println(strings.Join(getTotalOtpsInfo(otpList), "\n"))
+
 	case "add":
 		newOtp := otp{}
 		scanner := bufio.NewScanner(os.Stdin)
@@ -89,17 +117,45 @@ func main() {
 
 		otpList = append(otpList, newOtp)
 
-		jsonConfig, _ := json.Marshal(otpList)
-		file.WriteAt(jsonConfig, 0)
+		rewriteConfFile(file, otpList)
 
 		fmt.Println("✨ 🔑 ✨ Completed the addition of new OTP ")
+
+	case "remove":
+		fmt.Println(strings.Join(getTotalOtpsInfo(otpList), "\n"))
+		fmt.Print("\nChoose remove target OTP: ")
+
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		removedSeq, err := strconv.Atoi(scanner.Text())
+
+		if err != nil || removedSeq > len(otpList) {
+			fmt.Println(errorOutOfRangeText(removedSeq))
+		} else {
+			newOtpList := append(otpList[:removedSeq-1], otpList[removedSeq:]...)
+			rewriteConfFile(file, newOtpList)
+			fmt.Println("💨 Removal success")
+		}
+
+	case "clear":
+		fmt.Println(strings.Join(getTotalOtpsInfo(otpList), "\n"))
+		fmt.Print("\nDo you want clear all?: [y|N]")
+
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		confirmFlag := scanner.Text()
+
+		if confirmFlag == "y" || confirmFlag == "Y" {
+			rewriteConfFile(file, []otp{})
+			fmt.Println("🗑 Removed all")
+		}
 
 	default:
 		if otpSeq, err := strconv.Atoi(command); err != nil {
 			fmt.Println(helpText())
 		} else {
 			if otpSeq < 1 || otpSeq > len(otpList) {
-				fmt.Printf("ERRORRRRR: Selected number %d is out of range set OTP list.\n\n", otpSeq)
+				fmt.Printf(errorOutOfRangeText(otpSeq))
 				fmt.Println(helpText())
 				return
 			}
