@@ -19,8 +19,13 @@ type otp struct {
 	Secret      string
 }
 
-func help() string {
-	return "$ gtp [{number}|list|add|remove|clear]"
+func helpText() string {
+	return "usage: gtp [{number}|list|add|remove|clear]\n\n" +
+		"\t{number}\t등록된 OTP의 Passcode를 출력\n" +
+		"\tlist\t등록된 OTP 전체 목록\n" +
+		"\tadd\t신규 OTP Secret 추가\n" +
+		"\tremove\t선택된 OTP 삭제\n" +
+		"\tclear\t전체 OTP 삭제\n"
 }
 
 func main() {
@@ -48,14 +53,14 @@ func main() {
 
 	if len(gtpList) > 0 {
 		// otpListString := []byte(`[{"Issuer": "Sample", "AccountName": "jonnung", "Secret": "VOLFSSWKAUJRINVWNJNV57QZL74Y5627"}]`)
-		if err := json.Unmarshal([]byte(gtpList), &otpList); err != nil {
+		if err := json.Unmarshal(gtpList, &otpList); err != nil {
 			panic(err)
 		}
 	}
 
 	args := os.Args
 	if len(args) < 2 {
-		fmt.Println(help())
+		fmt.Println(helpText())
 		return
 	}
 	command := args[1]
@@ -87,12 +92,16 @@ func main() {
 		jsonConfig, _ := json.Marshal(otpList)
 		file.WriteAt(jsonConfig, 0)
 
+		fmt.Println("✨ 🔑 ✨ Completed the addition of new OTP ")
+
 	default:
 		if otpSeq, err := strconv.Atoi(command); err != nil {
-			fmt.Println(help())
+			fmt.Println(helpText())
 		} else {
 			if otpSeq < 1 || otpSeq > len(otpList) {
-				panic("Out of range")
+				fmt.Printf("ERRORRRRR: Selected number %d is out of range set OTP list.\n\n", otpSeq)
+				fmt.Println(helpText())
+				return
 			}
 
 			secret := otpList[otpSeq-1].Secret
