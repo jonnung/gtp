@@ -71,14 +71,12 @@ func main() {
 	}
 
 	defer file.Close()
-	// gtpList, err := ioutil.ReadFile(configFile)
 	gtpList, err := ioutil.ReadAll(file)
 	if err != nil {
 		panic("Error reading configuration file")
 	}
 
 	if len(gtpList) > 0 {
-		// otpListString := []byte(`[{"Issuer": "Sample", "AccountName": "jonnung", "Secret": "VOLFSSWKAUJRINVWNJNV57QZL74Y5627"}]`)
 		if err := json.Unmarshal(gtpList, &otpList); err != nil {
 			panic(err)
 		}
