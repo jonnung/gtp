@@ -2,8 +2,7 @@
 
 Simple ⏱Time-based 🔑OTP Client
 
-![toproject](https://img.shields.io/badge/toyproject-doing-green) ![gonewbie](https://img.shields.io/badge/golang-newbie-blue) ![build](https://img.shields.io/github/workflow/status/jonnung/gtp/1)  
-
+![gonewbie](https://img.shields.io/badge/golang-newbie-blue) ![GTP Release](https://github.com/jonnung/gtp/workflows/GTP%20Release/badge.svg?branch=master) ![Github Action](https://img.shields.io/github/workflow/status/jonnung/gtp/GTP%20Release?label=Github%20Action) ![License](https://img.shields.io/github/license/jonnung/gtp) ![first opensource](https://img.shields.io/badge/%F0%9F%8E%89first%20opensource-congratulation-ff69b4)
 
 ## What is GTP?
 GTP is a time-based OTP [CLI](https://en.wikipedia.org/wiki/Command-line_interface) client.  
